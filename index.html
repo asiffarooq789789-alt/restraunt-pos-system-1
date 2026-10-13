@@ -1,1 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Restaurant Stock Management</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <h2>🍽️ Stock Manager</h2>
+      <nav>
+        <button class="nav-btn active" data-page="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-page="mainstore">🏬 Main Store</button>
+        <button class="nav-btn" data-page="substores">🏪 Sub Stores</button>
+        <button class="nav-btn" data-page="transfer">🔄 Transfer Stock</button>
+        <button class="nav-btn" data-page="products">⚙️ Products / Settings</button>
+        <button class="nav-btn" data-page="accounts">💰 Store Accounts</button>
+      </nav>
+    </aside>
 
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <header class="topbar">
+        <h1 id="pageTitle">Dashboard</h1>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="page active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Total Products</h3>
+            <p id="statProducts">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Sub Stores</h3>
+            <p id="statStores">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Main Store Items</h3>
+            <p id="statMainItems">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Main Store Value</h3>
+            <p id="statMainValue">Rs 0</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- MAIN STORE -->
+      <section id="mainstore" class="page">
+        <div class="card">
+          <h2>Purchase Stock (Add to Main Store)</h2>
+          <form id="purchaseForm" class="form-row">
+            <select id="purchaseProduct" required></select>
+            <input type="number" id="purchaseQty" placeholder="Quantity" min="1" required />
+            <input type="number" id="purchasePrice" placeholder="Price per unit (optional)" min="0" step="0.01" />
+            <button type="submit" class="btn primary">Add Purchase</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Main Store Inventory</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price/Unit</th>
+                <th>Total Value</th>
+              </tr>
+            </thead>
+            <tbody id="mainStoreTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SUB STORES -->
+      <section id="substores" class="page">
+        <div class="card">
+          <h2>Add Sub Store</h2>
+          <form id="storeForm" class="form-row">
+            <input type="text" id="storeName" placeholder="Store Name (e.g. Kitchen, Bar)" required />
+            <button type="submit" class="btn primary">Add Store</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Sub Stores List</h2>
+          <div id="storesList" class="stores-grid"></div>
+        </div>
+      </section>
+
+      <!-- TRANSFER -->
+      <section id="transfer" class="page">
+        <div class="card">
+          <h2>Transfer Stock from Main Store</h2>
+          <form id="transferForm" class="form-row">
+            <select id="transferProduct" required></select>
+            <select id="transferStore" required></select>
+            <input type="number" id="transferQty" placeholder="Quantity" min="1" required />
+            <button type="submit" class="btn primary">Transfer</button>
+          </form>
+          <p id="transferMsg" class="msg"></p>
+        </div>
+
+        <div class="card">
+          <h2>Transfer History</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Product</th>
+                <th>To Store</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody id="transferHistory"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section id="products" class="page">
+        <div class="card">
+          <h2>Add Product (with Price)</h2>
+          <form id="productForm" class="form-row">
+            <input type="text" id="productName" placeholder="Product Name" required />
+            <input type="number" id="productPrice" placeholder="Price per unit" min="0" step="0.01" required />
+            <input type="text" id="productUnit" placeholder="Unit (kg, pcs, litre)" required />
+            <button type="submit" class="btn primary">Add Product</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Products List</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Unit</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="productsTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ACCOUNTS -->
+      <section id="accounts" class="page">
+        <div class="card">
+          <h2>Store Accounts (Stock Received Value)</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Store</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price/Unit</th>
+                <th>Total Value</th>
+              </tr>
+            </thead>
+            <tbody id="accountsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
