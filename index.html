@@ -1,175 +1,336 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Restaurant Stock Management</title>
+  <title>RestaurantOS — Stock Manager</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <h2>🍽️ Stock Manager</h2>
-      <nav>
-        <button class="nav-btn active" data-page="dashboard">📊 Dashboard</button>
-        <button class="nav-btn" data-page="mainstore">🏬 Main Store</button>
-        <button class="nav-btn" data-page="substores">🏪 Sub Stores</button>
-        <button class="nav-btn" data-page="transfer">🔄 Transfer Stock</button>
-        <button class="nav-btn" data-page="products">⚙️ Products / Settings</button>
-        <button class="nav-btn" data-page="accounts">💰 Store Accounts</button>
-      </nav>
-    </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="main">
-      <header class="topbar">
-        <h1 id="pageTitle">Dashboard</h1>
-      </header>
+  <!-- BACKGROUND BLOBS (glass effect ke liye) -->
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
 
-      <!-- DASHBOARD -->
-      <section id="dashboard" class="page active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h3>Total Products</h3>
-            <p id="statProducts">0</p>
-          </div>
-          <div class="stat-card">
-            <h3>Sub Stores</h3>
-            <p id="statStores">0</p>
-          </div>
-          <div class="stat-card">
-            <h3>Main Store Items</h3>
-            <p id="statMainItems">0</p>
-          </div>
-          <div class="stat-card">
-            <h3>Main Store Value</h3>
-            <p id="statMainValue">Rs 0</p>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="icon-btn" id="menuToggle" title="Menu">☰</button>
+    <div class="brand">
+      <span class="brand-icon">🍽️</span>
+      <span class="brand-name">RestaurantOS</span>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="globalSearch" placeholder="Search products, stores..."/>
+      </div>
+      <button class="icon-btn" id="notifBtn" title="Notifications">
+        🔔<span class="badge" id="notifBadge">0</span>
+      </button>
+      <button class="icon-btn" id="themeToggle" title="Toggle Theme">🌙</button>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-header">
+      <h3>🔔 Notifications</h3>
+      <button class="icon-btn small" id="closeNotif">✕</button>
+    </div>
+    <div class="notif-list" id="notifList"></div>
+  </div>
+
+  <!-- SIDEBAR (SLIDE-IN) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="brand-icon">🍽️</span>
+      <span class="brand-name">RestaurantOS</span>
+      <button class="icon-btn small" id="closeSidebar">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-page="dashboard"><span>📊</span> Dashboard</button>
+      <button class="nav-btn" data-page="mainstore"><span>🏬</span> Main Store</button>
+      <button class="nav-btn" data-page="substores"><span>🏪</span> Sub Stores</button>
+      <button class="nav-btn" data-page="transfer"><span>🔄</span> Transfer Stock</button>
+      <button class="nav-btn" data-page="products"><span>📦</span> Products</button>
+      <button class="nav-btn" data-page="accounts"><span>💰</span> Store Accounts</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost full" id="exportBtn">📥 Export Report</button>
+      <div class="version">v1.0 • LocalStorage</div>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="subtitle">Overview of your restaurant stock</p>
+        </div>
+        <div class="date-chip" id="todayDate"></div>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card glass">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#667eea,#764ba2)">📦</div>
+          <div>
+            <div class="stat-label">Total Products</div>
+            <div class="stat-value" id="statProducts">0</div>
           </div>
         </div>
-      </section>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#f093fb,#f5576c)">🏪</div>
+          <div>
+            <div class="stat-label">Sub Stores</div>
+            <div class="stat-value" id="statStores">0</div>
+          </div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">🏬</div>
+          <div>
+            <div class="stat-label">Main Store Items</div>
+            <div class="stat-value" id="statMainItems">0</div>
+          </div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">💰</div>
+          <div>
+            <div class="stat-label">Main Store Value</div>
+            <div class="stat-value" id="statMainValue">Rs 0</div>
+          </div>
+        </div>
+      </div>
 
-      <!-- MAIN STORE -->
-      <section id="mainstore" class="page">
-        <div class="card">
-          <h2>Purchase Stock (Add to Main Store)</h2>
-          <form id="purchaseForm" class="form-row">
+      <!-- CHART + STORES -->
+      <div class="dashboard-row">
+        <div class="glass card chart-card">
+          <div class="card-header">
+            <h3>📈 Stock Distribution</h3>
+          </div>
+          <div class="chart-bars" id="chartBars"></div>
+        </div>
+
+        <div class="glass card alerts-card">
+          <div class="card-header">
+            <h3>⚠️ Low Stock Alerts</h3>
+          </div>
+          <div class="alerts-list" id="lowStockList"></div>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY + TOP PRODUCTS -->
+      <div class="dashboard-row">
+        <div class="glass card">
+          <div class="card-header">
+            <h3>🕒 Recent Activity</h3>
+          </div>
+          <div class="activity-list" id="recentActivity"></div>
+        </div>
+
+        <div class="glass card">
+          <div class="card-header">
+            <h3>🏆 Top Products by Value</h3>
+          </div>
+          <div class="activity-list" id="topProducts"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN STORE -->
+    <section id="mainstore" class="page">
+      <div class="page-header">
+        <div>
+          <h1>🏬 Main Store</h1>
+          <p class="subtitle">Add purchases & view current inventory</p>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="card-header"><h3>➕ Purchase Stock</h3></div>
+        <form id="purchaseForm" class="form-grid">
+          <div class="field">
+            <label>Product</label>
             <select id="purchaseProduct" required></select>
-            <input type="number" id="purchaseQty" placeholder="Quantity" min="1" required />
-            <input type="number" id="purchasePrice" placeholder="Price per unit (optional)" min="0" step="0.01" />
-            <button type="submit" class="btn primary">Add Purchase</button>
-          </form>
-        </div>
+          </div>
+          <div class="field">
+            <label>Quantity</label>
+            <input type="number" id="purchaseQty" placeholder="0" min="1" required />
+          </div>
+          <div class="field">
+            <label>Price per unit (optional)</label>
+            <input type="number" id="purchasePrice" placeholder="Auto from product" min="0" step="0.01" />
+          </div>
+          <button type="submit" class="btn primary">Add Purchase</button>
+        </form>
+      </div>
 
-        <div class="card">
-          <h2>Main Store Inventory</h2>
+      <div class="glass card">
+        <div class="card-header">
+          <h3>📋 Inventory</h3>
+          <input type="text" class="mini-search" data-search="mainStoreTable" placeholder="🔍 Filter..."/>
+        </div>
+        <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price/Unit</th>
-                <th>Total Value</th>
-              </tr>
+              <tr><th>Product</th><th>Quantity</th><th>Price/Unit</th><th>Total Value</th></tr>
             </thead>
             <tbody id="mainStoreTable"></tbody>
           </table>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- SUB STORES -->
-      <section id="substores" class="page">
-        <div class="card">
-          <h2>Add Sub Store</h2>
-          <form id="storeForm" class="form-row">
-            <input type="text" id="storeName" placeholder="Store Name (e.g. Kitchen, Bar)" required />
-            <button type="submit" class="btn primary">Add Store</button>
-          </form>
+    <!-- SUB STORES -->
+    <section id="substores" class="page">
+      <div class="page-header">
+        <div>
+          <h1>🏪 Sub Stores</h1>
+          <p class="subtitle">Manage your kitchen, bar, and other outlets</p>
         </div>
+      </div>
 
-        <div class="card">
-          <h2>Sub Stores List</h2>
-          <div id="storesList" class="stores-grid"></div>
+      <div class="glass card">
+        <div class="card-header"><h3>➕ Add Sub Store</h3></div>
+        <form id="storeForm" class="form-grid">
+          <div class="field full">
+            <label>Store Name</label>
+            <input type="text" id="storeName" placeholder="e.g. Kitchen, Bar, Store 2" required />
+          </div>
+          <button type="submit" class="btn primary">Add Store</button>
+        </form>
+      </div>
+
+      <div class="glass card">
+        <div class="card-header"><h3>📋 Stores</h3></div>
+        <div class="stores-grid" id="storesList"></div>
+      </div>
+    </section>
+
+    <!-- TRANSFER -->
+    <section id="transfer" class="page">
+      <div class="page-header">
+        <div>
+          <h1>🔄 Transfer Stock</h1>
+          <p class="subtitle">Move stock from Main Store to sub stores</p>
         </div>
-      </section>
+      </div>
 
-      <!-- TRANSFER -->
-      <section id="transfer" class="page">
-        <div class="card">
-          <h2>Transfer Stock from Main Store</h2>
-          <form id="transferForm" class="form-row">
+      <div class="glass card">
+        <div class="card-header"><h3>➡️ New Transfer</h3></div>
+        <form id="transferForm" class="form-grid">
+          <div class="field">
+            <label>Product</label>
             <select id="transferProduct" required></select>
+          </div>
+          <div class="field">
+            <label>To Store</label>
             <select id="transferStore" required></select>
-            <input type="number" id="transferQty" placeholder="Quantity" min="1" required />
-            <button type="submit" class="btn primary">Transfer</button>
-          </form>
-          <p id="transferMsg" class="msg"></p>
-        </div>
+          </div>
+          <div class="field">
+            <label>Quantity</label>
+            <input type="number" id="transferQty" placeholder="0" min="1" required />
+          </div>
+          <button type="submit" class="btn primary">Transfer</button>
+        </form>
+        <p id="transferMsg" class="msg"></p>
+      </div>
 
-        <div class="card">
-          <h2>Transfer History</h2>
+      <div class="glass card">
+        <div class="card-header"><h3>📜 Transfer History</h3></div>
+        <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Date</th>
-                <th>Product</th>
-                <th>To Store</th>
-                <th>Qty</th>
-              </tr>
+              <tr><th>Date</th><th>Product</th><th>To Store</th><th>Qty</th></tr>
             </thead>
             <tbody id="transferHistory"></tbody>
           </table>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- PRODUCTS -->
-      <section id="products" class="page">
-        <div class="card">
-          <h2>Add Product (with Price)</h2>
-          <form id="productForm" class="form-row">
-            <input type="text" id="productName" placeholder="Product Name" required />
-            <input type="number" id="productPrice" placeholder="Price per unit" min="0" step="0.01" required />
-            <input type="text" id="productUnit" placeholder="Unit (kg, pcs, litre)" required />
-            <button type="submit" class="btn primary">Add Product</button>
-          </form>
+    <!-- PRODUCTS -->
+    <section id="products" class="page">
+      <div class="page-header">
+        <div>
+          <h1>📦 Products</h1>
+          <p class="subtitle">Set product names, prices & units</p>
         </div>
+      </div>
 
-        <div class="card">
-          <h2>Products List</h2>
+      <div class="glass card">
+        <div class="card-header"><h3>➕ Add Product</h3></div>
+        <form id="productForm" class="form-grid">
+          <div class="field">
+            <label>Product Name</label>
+            <input type="text" id="productName" placeholder="e.g. Chicken" required />
+          </div>
+          <div class="field">
+            <label>Price per unit</label>
+            <input type="number" id="productPrice" placeholder="0.00" min="0" step="0.01" required />
+          </div>
+          <div class="field">
+            <label>Unit</label>
+            <input type="text" id="productUnit" placeholder="kg / pcs / litre" required />
+          </div>
+          <button type="submit" class="btn primary">Add Product</button>
+        </form>
+      </div>
+
+      <div class="glass card">
+        <div class="card-header">
+          <h3>📋 Products List</h3>
+          <input type="text" class="mini-search" data-search="productsTable" placeholder="🔍 Filter..."/>
+        </div>
+        <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Product Name</th>
-                <th>Price</th>
-                <th>Unit</th>
-                <th>Action</th>
-              </tr>
+              <tr><th>Product Name</th><th>Price</th><th>Unit</th><th>Action</th></tr>
             </thead>
             <tbody id="productsTable"></tbody>
           </table>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- ACCOUNTS -->
-      <section id="accounts" class="page">
-        <div class="card">
-          <h2>Store Accounts (Stock Received Value)</h2>
+    <!-- ACCOUNTS -->
+    <section id="accounts" class="page">
+      <div class="page-header">
+        <div>
+          <h1>💰 Store Accounts</h1>
+          <p class="subtitle">Each store's stock ledger / khata</p>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="card-header">
+          <h3>📋 Ledger</h3>
+          <input type="text" class="mini-search" data-search="accountsTable" placeholder="🔍 Filter..."/>
+        </div>
+        <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Store</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price/Unit</th>
-                <th>Total Value</th>
-              </tr>
+              <tr><th>Store</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th></tr>
             </thead>
             <tbody id="accountsTable"></tbody>
           </table>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <script src="script.js"></script>
 </body>
