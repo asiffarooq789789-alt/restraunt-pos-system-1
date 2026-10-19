@@ -1,16 +1,25 @@
+/* ==================================================
+   RESTAURANTOS — Complete Script
+   ================================================== */
+
 /* ================= STORAGE ================= */
 const DB = {
-  get: (k, f) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } },
+  get: (k, f) => {
+    try {
+      const v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : f;
+    } catch (e) { return f; }
+  },
   set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
 };
 
-let products  = DB.get('products', []);
-let stores    = DB.get('stores', []);
+let products = DB.get('products', []);
+let stores = DB.get('stores', []);
 let mainStore = DB.get('mainStore', {});
 let transfers = DB.get('transfers', []);
-let accounts  = DB.get('accounts', {});
-let users     = DB.get('users', []);
-let logs      = DB.get('logs', []);
+let accounts = DB.get('accounts', {});
+let users = DB.get('users', []);
+let logs = DB.get('logs', []);
 let currentUser = null;
 let currentBranchId = null;
 
@@ -25,30 +34,33 @@ function saveAll() {
 }
 
 /* ================= HELPERS ================= */
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const getProduct = id => products.find(p => p.id === id);
-const getStore = id => stores.find(s => s.id === id);
-const fmtRs = n => 'Rs ' + Number(n || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function getProduct(id) { return products.find(function(p) { return p.id === id; }); }
+function getStore(id) { return stores.find(function(s) { return s.id === id; }); }
+function fmtRs(n) {
+  return 'Rs ' + Number(n || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-function toast(msg, type = 'success') {
-  const t = $('#toast');
+function toast(msg, type) {
+  type = type || 'success';
+  var t = $('#toast');
   if (!t) return;
   t.textContent = msg;
   t.className = 'toast show ' + type;
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.className = 'toast', 3000);
+  t._timer = setTimeout(function() { t.className = 'toast'; }, 3000);
 }
 
 function addLog(action, details) {
   logs.unshift({
     id: uid(),
     time: new Date().toLocaleString(),
-    userId: currentUser?.id || 'system',
-    userName: currentUser?.fullName || 'System',
-    action,
-    details
+    userId: currentUser ? currentUser.id : 'system',
+    userName: currentUser ? currentUser.fullName : 'System',
+    action: action,
+    details: details
   });
   if (logs.length > 500) logs = logs.slice(0, 500);
   saveAll();
@@ -56,21 +68,21 @@ function addLog(action, details) {
 
 function canDo(action) {
   if (!currentUser) return false;
-  const role = currentUser.role;
+  var role = currentUser.role;
   if (role === 'admin') return true;
   if (action === 'products' || action === 'users') return false;
   if ((action === 'transfer' || action === 'purchase') && role === 'staff') return false;
   return true;
 }
 
-/* ================= INIT USERS ================= */
-function initUsers() {
+/* ================= SEED USERS ================= */
+function seedUsers() {
   if (users.length === 0) {
     users = [
-      { id: uid(), username: 'admin',   password: 'admin123',   fullName: 'Admin User',   role: 'admin',   storeId: '' },
+      { id: uid(), username: 'admin', password: 'admin123', fullName: 'Admin User', role: 'admin', storeId: '' },
       { id: uid(), username: 'manager', password: 'manager123', fullName: 'Main Manager', role: 'manager', storeId: '' },
-      { id: uid(), username: 'kitchen', password: 'kitchen123', fullName: 'Kitchen Staff', role: 'staff',   storeId: '' },
-      { id: uid(), username: 'bar',     password: 'bar123',     fullName: 'Bar Staff',    role: 'staff',   storeId: '' }
+      { id: uid(), username: 'kitchen', password: 'kitchen123', fullName: 'Kitchen Staff', role: 'staff', storeId: '' },
+      { id: uid(), username: 'bar', password: 'bar123', fullName: 'Bar Staff', role: 'staff', storeId: '' }
     ];
     saveAll();
   }
@@ -78,44 +90,49 @@ function initUsers() {
 
 /* ================= LOGIN ================= */
 function setupLogin() {
-  const form = $('#loginForm');
+  var form = $('#loginForm');
   if (!form) return;
 
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const u = $('#loginUser').value.trim();
-    const p = $('#loginPass').value;
-    const msg = $('#loginMsg');
+    var u = $('#loginUser').value.trim();
+    var p = $('#loginPass').value;
+    var msg = $('#loginMsg');
 
-    // Reload users fresh from storage (in case created in another tab)
     users = DB.get('users', []);
+    var found = null;
+    for (var i = 0; i < users.length; i++) {
+      if (users[i].username === u && users[i].password === p) {
+        found = users[i];
+        break;
+      }
+    }
 
-    const user = users.find(x => x.username === u && x.password === p);
-    if (!user) {
+    if (!found) {
       msg.textContent = '❌ Invalid username or password';
       msg.className = 'login-msg error';
       return;
     }
 
-    currentUser = user;
-    sessionStorage.setItem('currentUserId', user.id);
+    currentUser = found;
+    sessionStorage.setItem('currentUserId', found.id);
     msg.textContent = '✅ Login successful...';
     msg.className = 'login-msg success';
 
-    setTimeout(() => {
+    setTimeout(function() {
       $('#loginScreen').classList.add('hidden');
       $('#appRoot').style.display = 'block';
-      applyUserPermissions();
+      applyPermissions();
       renderAll();
-      addLog('LOGIN', `${user.fullName} logged in`);
+      addLog('LOGIN', found.fullName + ' logged in');
     }, 300);
   });
 
-  const logoutBtn = $('#logoutBtn');
+  var logoutBtn = $('#logoutBtn');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', function() {
       if (!confirm('Logout?')) return;
-      if (currentUser) addLog('LOGOUT', `${currentUser.fullName} logged out`);
+      if (currentUser) addLog('LOGOUT', currentUser.fullName + ' logged out');
       currentUser = null;
       sessionStorage.removeItem('currentUserId');
       $('#appRoot').style.display = 'none';
@@ -128,65 +145,65 @@ function setupLogin() {
 }
 
 function restoreSession() {
-  const id = sessionStorage.getItem('currentUserId');
+  var id = sessionStorage.getItem('currentUserId');
   if (!id) return false;
-  const user = users.find(u => u.id === id);
-  if (!user) return false;
-  currentUser = user;
+  var found = users.find(function(u) { return u.id === id; });
+  if (!found) return false;
+  currentUser = found;
   $('#loginScreen').classList.add('hidden');
   $('#appRoot').style.display = 'block';
-  applyUserPermissions();
+  applyPermissions();
   return true;
 }
 
-function applyUserPermissions() {
+function applyPermissions() {
   if (!currentUser) return;
-
   $('#userName').textContent = currentUser.fullName;
   $('#userRole').textContent = currentUser.role;
   $('#userAvatar').textContent = currentUser.fullName.charAt(0).toUpperCase();
 
-  const storeName = currentUser.storeId ? getStore(currentUser.storeId)?.name : '';
+  var storeName = currentUser.storeId ? (getStore(currentUser.storeId) ? getStore(currentUser.storeId).name : '') : '';
   $('#dashSubtitle').textContent = currentUser.role === 'admin'
     ? 'Overview of entire restaurant stock'
-    : `Welcome ${currentUser.fullName}${storeName ? ' — ' + storeName : ''}`;
+    : 'Welcome ' + currentUser.fullName + (storeName ? ' — ' + storeName : '');
 
-  $$('.nav-btn').forEach(btn => {
-    const roles = (btn.dataset.roles || '').split(',');
-    if (roles.includes(currentUser.role)) btn.classList.remove('hidden');
+  $$('.nav-btn').forEach(function(btn) {
+    var roles = (btn.dataset.roles || '').split(',');
+    if (roles.indexOf(currentUser.role) !== -1) btn.classList.remove('hidden');
     else btn.classList.add('hidden');
   });
 }
 
 /* ================= THEME ================= */
-const savedTheme = localStorage.getItem('theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-updateThemeIcon(savedTheme);
-
 function setupTheme() {
-  const btn = $('#themeToggle');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    updateThemeIcon(next);
-  });
+  var saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon(saved);
+
+  var btn = $('#themeToggle');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var cur = document.documentElement.getAttribute('data-theme');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeIcon(next);
+    });
+  }
 }
 
 function updateThemeIcon(theme) {
-  const btn = $('#themeToggle');
+  var btn = $('#themeToggle');
   if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
 }
 
 /* ================= SIDEBAR ================= */
 function setupSidebar() {
-  const openBtn = $('#menuToggle');
-  const closeBtn = $('#closeSidebar');
-  const overlay = $('#overlay');
+  var openBtn = $('#menuToggle');
+  var closeBtn = $('#closeSidebar');
+  var overlay = $('#overlay');
 
-  if (openBtn) openBtn.addEventListener('click', () => {
+  if (openBtn) openBtn.addEventListener('click', function() {
     $('#sidebar').classList.add('open');
     $('#overlay').classList.add('show');
   });
@@ -195,19 +212,19 @@ function setupSidebar() {
 }
 
 function closeSidebar() {
-  const sb = $('#sidebar'); const ov = $('#overlay');
+  var sb = $('#sidebar'); var ov = $('#overlay');
   if (sb) sb.classList.remove('open');
   if (ov) ov.classList.remove('show');
 }
 
 /* ================= NAVIGATION ================= */
 function setupNav() {
-  $$('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('.nav-btn').forEach(b => b.classList.remove('active'));
+  $$('.nav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      $$('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      $$('.page').forEach(p => p.classList.remove('active'));
-      const page = $('#' + btn.dataset.page);
+      $$('.page').forEach(function(p) { p.classList.remove('active'); });
+      var page = $('#' + btn.dataset.page);
       if (page) page.classList.add('active');
       closeSidebar();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -217,120 +234,126 @@ function setupNav() {
 
 /* ================= NOTIFICATIONS ================= */
 function setupNotifications() {
-  const notifBtn = $('#notifBtn');
-  const closeNotif = $('#closeNotif');
-  if (notifBtn) notifBtn.addEventListener('click', e => {
+  var notifBtn = $('#notifBtn');
+  var closeNotif = $('#closeNotif');
+  if (notifBtn) notifBtn.addEventListener('click', function(e) {
     e.stopPropagation();
     $('#notifPanel').classList.toggle('show');
   });
-  if (closeNotif) closeNotif.addEventListener('click', () => $('#notifPanel').classList.remove('show'));
-
-  document.addEventListener('click', e => {
+  if (closeNotif) closeNotif.addEventListener('click', function() {
+    $('#notifPanel').classList.remove('show');
+  });
+  document.addEventListener('click', function(e) {
     if (!e.target.closest('#notifPanel') && !e.target.closest('#notifBtn')) {
-      const np = $('#notifPanel');
+      var np = $('#notifPanel');
       if (np) np.classList.remove('show');
     }
   });
 }
 
 function getLowStockAlerts() {
-  const alerts = [];
-  Object.entries(mainStore).forEach(([pid, qty]) => {
-    const p = getProduct(pid);
+  var alerts = [];
+  Object.entries(mainStore).forEach(function(entry) {
+    var pid = entry[0], qty = entry[1];
+    var p = getProduct(pid);
     if (!p || qty <= 0) return;
     if (qty < 10) {
-      alerts.push({ name: p.name, msg: `Main Store: only ${qty} ${p.unit} left`, level: qty < 5 ? 'danger' : 'warn' });
+      alerts.push({
+        name: p.name,
+        msg: 'Main Store: only ' + qty + ' ' + p.unit + ' left',
+        level: qty < 5 ? 'danger' : 'warn'
+      });
     }
   });
   return alerts;
 }
 
 function renderNotifications() {
-  const alerts = getLowStockAlerts();
-  const badge = $('#notifBadge');
+  var alerts = getLowStockAlerts();
+  var badge = $('#notifBadge');
   if (badge) {
     badge.textContent = alerts.length;
     badge.style.display = alerts.length ? 'block' : 'none';
   }
-  const list = $('#notifList');
+  var list = $('#notifList');
   if (!list) return;
-  if (!alerts.length) {
-    list.innerHTML = `<div class="empty-state"><span class="emoji">✨</span>All good! No alerts.</div>`;
+  if (alerts.length === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="emoji">✨</span>All good! No alerts.</div>';
     return;
   }
-  list.innerHTML = alerts.map(a => `
-    <div class="alert-item ${a.level}">
-      <span class="icon">${a.level === 'danger' ? '🚨' : '⚠️'}</span>
-      <div class="info"><strong>${a.name}</strong><span>${a.msg}</span></div>
-    </div>
-  `).join('');
+  var html = '';
+  alerts.forEach(function(a) {
+    html += '<div class="alert-item ' + a.level + '">' +
+      '<span class="icon">' + (a.level === 'danger' ? '🚨' : '⚠️') + '</span>' +
+      '<div class="info"><strong>' + a.name + '</strong><span>' + a.msg + '</span></div></div>';
+  });
+  list.innerHTML = html;
 }
 
 /* ================= PRODUCTS ================= */
 function setupProducts() {
-  const form = $('#productForm');
+  var form = $('#productForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!canDo('products')) return toast('❌ Only admin', 'error');
-
-    const name = $('#productName').value.trim();
-    const price = parseFloat($('#productPrice').value);
-    const unit = $('#productUnit').value.trim();
+    if (!canDo('products')) { toast('❌ Only admin', 'error'); return; }
+    var name = $('#productName').value.trim();
+    var price = parseFloat($('#productPrice').value);
+    var unit = $('#productUnit').value.trim();
     if (!name || isNaN(price) || !unit) return;
 
-    products.push({ id: uid(), name, price, unit });
+    products.push({ id: uid(), name: name, price: price, unit: unit });
     saveAll();
     e.target.reset();
-    addLog('ADD_PRODUCT', `Added product: ${name}`);
+    addLog('ADD_PRODUCT', 'Added product: ' + name);
     renderAll();
-    toast(`✅ "${name}" added`);
+    toast('✅ "' + name + '" added');
   });
 }
 
 window.deleteProduct = function(id) {
-  if (!canDo('products')) return toast('❌ No permission', 'error');
-  const p = getProduct(id);
-  if (!confirm(`Delete "${p.name}"?`)) return;
-  products = products.filter(x => x.id !== id);
+  if (!canDo('products')) { toast('❌ No permission', 'error'); return; }
+  var p = getProduct(id);
+  if (!p) return;
+  if (!confirm('Delete "' + p.name + '"?')) return;
+  products = products.filter(function(x) { return x.id !== id; });
   delete mainStore[id];
-  stores.forEach(s => delete s.items[id]);
-  Object.keys(accounts).forEach(sid => delete accounts[sid][id]);
+  stores.forEach(function(s) { delete s.items[id]; });
+  Object.keys(accounts).forEach(function(sid) { delete accounts[sid][id]; });
   saveAll();
-  addLog('DELETE_PRODUCT', `Deleted product: ${p.name}`);
+  addLog('DELETE_PRODUCT', 'Deleted product: ' + p.name);
   renderAll();
   toast('🗑️ Product deleted', 'error');
 };
 
 function renderProducts() {
-  const tbody = $('#productsTable');
+  var tbody = $('#productsTable');
   if (!tbody) return;
-  tbody.innerHTML = products.length === 0
-    ? `<tr><td colspan="4"><div class="empty-state"><span class="emoji">📦</span>No products yet</div></td></tr>`
-    : products.map(p => `
-      <tr>
-        <td><strong>${p.name}</strong></td>
-        <td>${fmtRs(p.price)}</td>
-        <td>${p.unit}</td>
-        <td><button class="btn danger" onclick="deleteProduct('${p.id}')">Delete</button></td>
-      </tr>
-    `).join('');
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><span class="emoji">📦</span>No products yet</div></td></tr>';
+    return;
+  }
+  var html = '';
+  products.forEach(function(p) {
+    html += '<tr><td><strong>' + p.name + '</strong></td><td>' + fmtRs(p.price) + '</td><td>' + p.unit + '</td>' +
+      '<td><button class="btn danger" onclick="deleteProduct(\'' + p.id + '\')">Delete</button></td></tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 /* ================= PURCHASE ================= */
 function setupPurchase() {
-  const form = $('#purchaseForm');
+  var form = $('#purchaseForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!canDo('purchase')) return toast('❌ No permission', 'error');
-
-    const pid = $('#purchaseProduct').value;
-    const qty = parseInt($('#purchaseQty').value);
-    const priceInput = $('#purchasePrice').value;
+    if (!canDo('purchase')) { toast('❌ No permission', 'error'); return; }
+    var pid = $('#purchaseProduct').value;
+    var qty = parseInt($('#purchaseQty').value);
+    var priceInput = $('#purchasePrice').value;
     if (!pid || qty <= 0) return;
 
-    const product = getProduct(pid);
+    var product = getProduct(pid);
     if (!product) return;
 
     if (priceInput && !isNaN(parseFloat(priceInput))) product.price = parseFloat(priceInput);
@@ -338,103 +361,109 @@ function setupPurchase() {
     mainStore[pid] = (mainStore[pid] || 0) + qty;
     saveAll();
     e.target.reset();
-    addLog('PURCHASE', `${qty} ${product.unit} of ${product.name} added to Main Store`);
+    addLog('PURCHASE', qty + ' ' + product.unit + ' of ' + product.name + ' added');
     renderAll();
-    toast(`📦 ${qty} ${product.unit} of ${product.name} added`);
+    toast('📦 ' + qty + ' ' + product.unit + ' added');
   });
 }
 
 function renderMainStore() {
-  const tbody = $('#mainStoreTable');
+  var tbody = $('#mainStoreTable');
   if (!tbody) return;
-  const entries = Object.entries(mainStore).filter(([, q]) => q > 0);
-  tbody.innerHTML = entries.length === 0
-    ? `<tr><td colspan="4"><div class="empty-state"><span class="emoji">🏬</span>Main store is empty</div></td></tr>`
-    : entries.map(([pid, qty]) => {
-        const p = getProduct(pid);
-        if (!p) return '';
-        return `<tr><td><strong>${p.name}</strong></td><td>${qty} ${p.unit}</td><td>${fmtRs(p.price)}</td><td><strong>${fmtRs(qty * p.price)}</strong></td></tr>`;
-      }).join('');
+  var entries = Object.entries(mainStore).filter(function(e) { return e[1] > 0; });
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><span class="emoji">🏬</span>Main store is empty</div></td></tr>';
+    return;
+  }
+  var html = '';
+  entries.forEach(function(entry) {
+    var pid = entry[0], qty = entry[1];
+    var p = getProduct(pid);
+    if (!p) return;
+    html += '<tr><td><strong>' + p.name + '</strong></td><td>' + qty + ' ' + p.unit + '</td>' +
+      '<td>' + fmtRs(p.price) + '</td><td><strong>' + fmtRs(qty * p.price) + '</strong></td></tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 /* ================= STORES ================= */
 function setupStores() {
-  const form = $('#storeForm');
+  var form = $('#storeForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const name = $('#storeName').value.trim();
+    var name = $('#storeName').value.trim();
     if (!name) return;
-    stores.push({ id: uid(), name, items: {} });
+    stores.push({ id: uid(), name: name, items: {} });
     saveAll();
     e.target.reset();
-    addLog('ADD_STORE', `Added store: ${name}`);
+    addLog('ADD_STORE', 'Added store: ' + name);
     renderAll();
-    toast(`🏪 "${name}" store added`);
+    toast('🏪 "' + name + '" added');
   });
 }
 
 window.deleteStore = function(id) {
-  if (!confirm(`Delete this store? All stock will be lost.`)) return;
-  const s = getStore(id);
-  stores = stores.filter(x => x.id !== id);
+  if (!confirm('Delete this store? All stock will be lost.')) return;
+  var s = getStore(id);
+  stores = stores.filter(function(x) { return x.id !== id; });
   delete accounts[id];
   saveAll();
-  addLog('DELETE_STORE', `Deleted store: ${s?.name}`);
+  addLog('DELETE_STORE', 'Deleted store: ' + (s ? s.name : ''));
   renderAll();
   toast('🗑️ Store deleted', 'error');
 };
 
 function renderStores() {
-  const container = $('#storesList');
+  var container = $('#storesList');
   if (!container) return;
-  if (!stores.length) {
-    container.innerHTML = `<div class="empty-state"><span class="emoji">🏪</span>No sub stores yet. Add one above!</div>`;
+  if (stores.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="emoji">🏪</span>No sub stores yet</div>';
     return;
   }
-  container.innerHTML = stores.map(s => {
-    const items = Object.entries(s.items).filter(([, q]) => q > 0);
-    let total = 0;
-    items.forEach(([pid, qty]) => {
-      const p = getProduct(pid);
-      if (p) total += qty * p.price;
+  var html = '';
+  stores.forEach(function(s) {
+    var items = Object.entries(s.items).filter(function(e) { return e[1] > 0; });
+    var total = 0;
+    items.forEach(function(e) {
+      var p = getProduct(e[0]);
+      if (p) total += e[1] * p.price;
     });
 
-    return `
-      <div class="store-card">
-        <h3>🏪 ${s.name}</h3>
-        <div class="store-items">
-          ${items.length === 0
-            ? `<div class="item"><span>No stock</span></div>`
-            : items.slice(0, 4).map(([pid, qty]) => {
-                const p = getProduct(pid);
-                if (!p) return '';
-                return `<div class="item"><span>${p.name}</span><strong>${qty} ${p.unit}</strong></div>`;
-              }).join('') +
-              (items.length > 4 ? `<div class="item"><span>+ ${items.length - 4} more...</span></div>` : '')
-          }
-        </div>
-        <div class="store-actions">
-          <span class="store-total">${fmtRs(total)}</span>
-          <button class="btn danger" onclick="deleteStore('${s.id}')">Delete</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+    var itemsHtml = '';
+    if (items.length === 0) {
+      itemsHtml = '<div class="item"><span>No stock</span></div>';
+    } else {
+      items.slice(0, 4).forEach(function(e) {
+        var p = getProduct(e[0]);
+        if (!p) return;
+        itemsHtml += '<div class="item"><span>' + p.name + '</span><strong>' + e[1] + ' ' + p.unit + '</strong></div>';
+      });
+      if (items.length > 4) {
+        itemsHtml += '<div class="item"><span>+ ' + (items.length - 4) + ' more...</span></div>';
+      }
+    }
+
+    html += '<div class="store-card"><h3>🏪 ' + s.name + '</h3>' +
+      '<div class="store-items">' + itemsHtml + '</div>' +
+      '<div class="store-actions"><span class="store-total">' + fmtRs(total) + '</span>' +
+      '<button class="btn danger" onclick="deleteStore(\'' + s.id + '\')">Delete</button></div></div>';
+  });
+  container.innerHTML = html;
 }
 
 /* ================= TRANSFER ================= */
 function setupTransfer() {
-  const form = $('#transferForm');
+  var form = $('#transferForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!canDo('transfer')) return toast('❌ No permission', 'error');
+    if (!canDo('transfer')) { toast('❌ No permission', 'error'); return; }
 
-    const pid = $('#transferProduct').value;
-    const sid = $('#transferStore').value;
-    const qty = parseInt($('#transferQty').value);
-    const msg = $('#transferMsg');
+    var pid = $('#transferProduct').value;
+    var sid = $('#transferStore').value;
+    var qty = parseInt($('#transferQty').value);
+    var msg = $('#transferMsg');
 
     if (!pid || !sid || qty <= 0) {
       msg.textContent = '⚠️ Fill all fields';
@@ -442,15 +471,15 @@ function setupTransfer() {
       return;
     }
 
-    const available = mainStore[pid] || 0;
+    var available = mainStore[pid] || 0;
     if (qty > available) {
-      msg.textContent = `❌ Not enough stock. Available: ${available}`;
+      msg.textContent = '❌ Not enough stock. Available: ' + available;
       msg.className = 'msg show error';
       return;
     }
 
-    const product = getProduct(pid);
-    const store = getStore(sid);
+    var product = getProduct(pid);
+    var store = getStore(sid);
     if (!product || !store) return;
 
     mainStore[pid] -= qty;
@@ -465,63 +494,61 @@ function setupTransfer() {
       date: new Date().toLocaleString(),
       productId: pid,
       storeId: sid,
-      qty,
-      by: currentUser?.fullName || 'System'
+      qty: qty,
+      by: currentUser ? currentUser.fullName : 'System'
     });
 
     saveAll();
     e.target.reset();
-    msg.textContent = `✅ ${qty} ${product.unit} of ${product.name} → ${store.name}`;
+    msg.textContent = '✅ ' + qty + ' ' + product.unit + ' of ' + product.name + ' → ' + store.name;
     msg.className = 'msg show success';
-    addLog('TRANSFER', `${qty} ${product.unit} of ${product.name} to ${store.name}`);
-    toast(`🔄 Transferred to ${store.name}`);
+    addLog('TRANSFER', qty + ' ' + product.unit + ' of ' + product.name + ' to ' + store.name);
+    toast('🔄 Transferred');
     renderAll();
-    setTimeout(() => { msg.className = 'msg'; }, 4000);
+    setTimeout(function() { msg.className = 'msg'; }, 4000);
   });
 }
 
 function renderTransferHistory() {
-  const tbody = $('#transferHistory');
+  var tbody = $('#transferHistory');
   if (!tbody) return;
-  tbody.innerHTML = transfers.length === 0
-    ? `<tr><td colspan="5"><div class="empty-state"><span class="emoji">🔄</span>No transfers yet</div></td></tr>`
-    : transfers.slice(0, 30).map(t => {
-        const p = getProduct(t.productId);
-        const s = getStore(t.storeId);
-        return `
-          <tr>
-            <td>${t.date}</td>
-            <td><strong>${p ? p.name : '—'}</strong></td>
-            <td>${s ? s.name : '—'}</td>
-            <td>${t.qty}</td>
-            <td>${t.by || '—'}</td>
-          </tr>`;
-      }).join('');
+  if (transfers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><span class="emoji">🔄</span>No transfers yet</div></td></tr>';
+    return;
+  }
+  var html = '';
+  transfers.slice(0, 30).forEach(function(t) {
+    var p = getProduct(t.productId);
+    var s = getStore(t.storeId);
+    html += '<tr><td>' + t.date + '</td><td><strong>' + (p ? p.name : '—') + '</strong></td>' +
+      '<td>' + (s ? s.name : '—') + '</td><td>' + t.qty + '</td><td>' + (t.by || '—') + '</td></tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 /* ================= BRANCH STOCK ================= */
 function setupBranchStock() {
-  const sel = $('#branchSelect');
+  var sel = $('#branchSelect');
   if (sel) {
-    sel.addEventListener('change', () => {
+    sel.addEventListener('change', function() {
       currentBranchId = sel.value;
       renderBranchStock();
       updateBranchProductDropdown();
     });
   }
 
-  const form = $('#stockUpdateForm');
+  var form = $('#stockUpdateForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const store = getStore(currentBranchId);
-    if (!store) return toast('❌ Select a branch first', 'error');
+    var store = getStore(currentBranchId);
+    if (!store) { toast('❌ Select branch first', 'error'); return; }
 
-    const pid = $('#updateProduct').value;
-    const action = $('#updateAction').value;
-    const qty = parseInt($('#updateQty').value);
-    const note = $('#updateNote').value.trim();
-    const msg = $('#updateMsg');
+    var pid = $('#updateProduct').value;
+    var action = $('#updateAction').value;
+    var qty = parseInt($('#updateQty').value);
+    var note = $('#updateNote').value.trim();
+    var msg = $('#updateMsg');
 
     if (!pid || qty <= 0) {
       msg.textContent = '⚠️ Fill all fields';
@@ -529,23 +556,27 @@ function setupBranchStock() {
       return;
     }
 
-    const product = getProduct(pid);
+    var product = getProduct(pid);
     if (!product) return;
 
-    const current = store.items[pid] || 0;
+    var current = store.items[pid] || 0;
+    var actionLabel = '';
 
     if (action === 'add') {
       store.items[pid] = current + qty;
+      actionLabel = 'Added';
     } else if (action === 'remove') {
       if (qty > current) {
-        msg.textContent = `❌ Not enough. Available: ${current}`;
+        msg.textContent = '❌ Not enough. Available: ' + current;
         msg.className = 'msg show error';
         return;
       }
       store.items[pid] = current - qty;
       if (store.items[pid] === 0) delete store.items[pid];
+      actionLabel = 'Removed';
     } else if (action === 'set') {
       store.items[pid] = qty;
+      actionLabel = 'Set';
     }
 
     if (!accounts[store.id]) accounts[store.id] = {};
@@ -554,223 +585,239 @@ function setupBranchStock() {
     accounts[store.id][pid].price = product.price;
 
     saveAll();
-    const actionLabel = action === 'add' ? 'Added' : action === 'remove' ? 'Removed' : 'Set';
-    msg.textContent = `✅ ${actionLabel} ${qty} ${product.unit} of ${product.name} (${store.name})${note ? ' — ' + note : ''}`;
+    msg.textContent = '✅ ' + actionLabel + ' ' + qty + ' ' + product.unit + ' of ' + product.name + (note ? ' — ' + note : '');
     msg.className = 'msg show success';
-    addLog('BRANCH_UPDATE', `${actionLabel} ${qty} ${product.unit} of ${product.name} at ${store.name}${note ? ' | ' + note : ''}`);
-    toast(`✅ Stock updated`);
+    addLog('BRANCH_UPDATE', actionLabel + ' ' + qty + ' ' + product.unit + ' of ' + product.name + ' at ' + store.name);
+    toast('✅ Stock updated');
     e.target.reset();
     renderAll();
-    setTimeout(() => { msg.className = 'msg'; }, 4000);
+    setTimeout(function() { msg.className = 'msg'; }, 4000);
   });
 }
 
 function renderBranchSelect() {
-  const sel = $('#branchSelect');
+  var sel = $('#branchSelect');
   if (!sel) return;
 
-  let availableStores = stores;
-  if (currentUser?.role === 'staff' && currentUser.storeId) {
-    availableStores = stores.filter(s => s.id === currentUser.storeId);
+  var availableStores = stores;
+  if (currentUser && currentUser.role === 'staff' && currentUser.storeId) {
+    availableStores = stores.filter(function(s) { return s.id === currentUser.storeId; });
   }
 
-  if (!availableStores.length) {
-    sel.innerHTML = `<option value="">No stores available</option>`;
+  if (availableStores.length === 0) {
+    sel.innerHTML = '<option value="">No stores available</option>';
     return;
   }
 
-  sel.innerHTML = availableStores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  var html = '';
+  availableStores.forEach(function(s) {
+    html += '<option value="' + s.id + '">' + s.name + '</option>';
+  });
+  sel.innerHTML = html;
 
-  if (!currentBranchId || !availableStores.find(s => s.id === currentBranchId)) {
-    currentBranchId = availableStores[0].id;
-  }
+  var found = availableStores.find(function(s) { return s.id === currentBranchId; });
+  if (!found) currentBranchId = availableStores[0].id;
   sel.value = currentBranchId;
 }
 
 function renderBranchStock() {
-  const tbody = $('#branchStockTable');
+  var tbody = $('#branchStockTable');
   if (!tbody) return;
 
-  const store = getStore(currentBranchId);
+  var store = getStore(currentBranchId);
   if (!store) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="emoji">🏪</span>No branch selected</div></td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><span class="emoji">🏪</span>No branch selected</div></td></tr>';
     return;
   }
 
-  const items = Object.entries(store.items).filter(([, q]) => q > 0);
-  let total = 0;
-  items.forEach(([pid, qty]) => {
-    const p = getProduct(pid);
-    if (p) total += qty * p.price;
+  var items = Object.entries(store.items).filter(function(e) { return e[1] > 0; });
+  var total = 0;
+  items.forEach(function(e) {
+    var p = getProduct(e[0]);
+    if (p) total += e[1] * p.price;
   });
-  const branchTotal = $('#branchTotal');
-  if (branchTotal) branchTotal.textContent = fmtRs(total);
+  var bt = $('#branchTotal');
+  if (bt) bt.textContent = fmtRs(total);
 
-  tbody.innerHTML = items.length === 0
-    ? `<tr><td colspan="5"><div class="empty-state"><span class="emoji">📦</span>No stock in ${store.name}</div></td></tr>`
-    : items.map(([pid, qty]) => {
-        const p = getProduct(pid);
-        if (!p) return '';
-        return `
-          <tr>
-            <td><strong>${p.name}</strong></td>
-            <td>${qty} ${p.unit}</td>
-            <td>${fmtRs(p.price)}</td>
-            <td>${fmtRs(qty * p.price)}</td>
-            <td><button class="btn danger small" onclick="removeFromBranch('${currentBranchId}','${pid}',1)">−1</button></td>
-          </tr>`;
-      }).join('');
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><span class="emoji">📦</span>No stock in ' + store.name + '</div></td></tr>';
+    updateBranchProductDropdown();
+    return;
+  }
+
+  var html = '';
+  items.forEach(function(entry) {
+    var pid = entry[0], qty = entry[1];
+    var p = getProduct(pid);
+    if (!p) return;
+    html += '<tr><td><strong>' + p.name + '</strong></td><td>' + qty + ' ' + p.unit + '</td>' +
+      '<td>' + fmtRs(p.price) + '</td><td>' + fmtRs(qty * p.price) + '</td>' +
+      '<td><button class="btn danger small" onclick="removeFromBranch(\'' + currentBranchId + '\',\'' + pid + '\',1)">−1</button></td></tr>';
+  });
+  tbody.innerHTML = html;
 
   updateBranchProductDropdown();
 }
 
 window.removeFromBranch = function(sid, pid, qty) {
-  const store = getStore(sid);
+  var store = getStore(sid);
   if (!store) return;
-  const cur = store.items[pid] || 0;
-  if (cur < qty) return toast('❌ Not enough', 'error');
+  var cur = store.items[pid] || 0;
+  if (cur < qty) { toast('❌ Not enough', 'error'); return; }
   store.items[pid] = cur - qty;
   if (store.items[pid] === 0) delete store.items[pid];
   saveAll();
-  addLog('BRANCH_REMOVE', `Removed ${qty} from ${store.name}`);
+  addLog('BRANCH_REMOVE', 'Removed ' + qty + ' from ' + store.name);
   renderAll();
   toast('➖ Removed');
 };
 
 function updateBranchProductDropdown() {
-  const sel = $('#updateProduct');
+  var sel = $('#updateProduct');
   if (!sel) return;
-  const store = getStore(currentBranchId);
+  var store = getStore(currentBranchId);
   if (!store) return;
 
-  const productIds = Object.keys(store.items).filter(pid => (store.items[pid] || 0) > 0);
-  if (!productIds.length) {
-    sel.innerHTML = `<option value="">No products in this branch</option>`;
+  var productIds = Object.keys(store.items).filter(function(pid) { return (store.items[pid] || 0) > 0; });
+  if (productIds.length === 0) {
+    sel.innerHTML = '<option value="">No products in this branch</option>';
     return;
   }
-  sel.innerHTML = productIds.map(pid => {
-    const p = getProduct(pid);
-    return p ? `<option value="${pid}">${p.name} (current: ${store.items[pid]} ${p.unit})</option>` : '';
-  }).join('');
+  var html = '';
+  productIds.forEach(function(pid) {
+    var p = getProduct(pid);
+    if (p) html += '<option value="' + pid + '">' + p.name + ' (current: ' + store.items[pid] + ' ' + p.unit + ')</option>';
+  });
+  sel.innerHTML = html;
 }
 
 /* ================= ACCOUNTS ================= */
 function renderAccounts() {
-  const tbody = $('#accountsTable');
+  var tbody = $('#accountsTable');
   if (!tbody) return;
-  const rows = [];
+  var rows = [];
 
-  Object.entries(accounts).forEach(([sid, items]) => {
-    const store = getStore(sid);
+  Object.entries(accounts).forEach(function(entry) {
+    var sid = entry[0], items = entry[1];
+    var store = getStore(sid);
     if (!store) return;
-    Object.entries(items).forEach(([pid, data]) => {
-      const p = getProduct(pid);
+    Object.entries(items).forEach(function(e) {
+      var pid = e[0], data = e[1];
+      var p = getProduct(pid);
       if (!p || data.qty <= 0) return;
-      rows.push({ storeName: store.name, productName: p.name, qty: data.qty, unit: p.unit, price: data.price, total: data.qty * data.price });
+      rows.push({
+        storeName: store.name,
+        productName: p.name,
+        qty: data.qty,
+        unit: p.unit,
+        price: data.price,
+        total: data.qty * data.price
+      });
     });
   });
 
-  tbody.innerHTML = rows.length === 0
-    ? `<tr><td colspan="5"><div class="empty-state"><span class="emoji">💰</span>No account entries yet</div></td></tr>`
-    : rows.map(r => `
-      <tr>
-        <td>${r.storeName}</td>
-        <td><strong>${r.productName}</strong></td>
-        <td>${r.qty} ${r.unit}</td>
-        <td>${fmtRs(r.price)}</td>
-        <td><strong>${fmtRs(r.total)}</strong></td>
-      </tr>
-    `).join('');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><span class="emoji">💰</span>No account entries yet</div></td></tr>';
+    return;
+  }
+  var html = '';
+  rows.forEach(function(r) {
+    html += '<tr><td>' + r.storeName + '</td><td><strong>' + r.productName + '</strong></td>' +
+      '<td>' + r.qty + ' ' + r.unit + '</td><td>' + fmtRs(r.price) + '</td>' +
+      '<td><strong>' + fmtRs(r.total) + '</strong></td></tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 /* ================= USERS ================= */
 function setupUsers() {
-  const form = $('#userForm');
+  var form = $('#userForm');
   if (!form) return;
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!canDo('users')) return toast('❌ Only admin', 'error');
+    if (!canDo('users')) { toast('❌ Only admin', 'error'); return; }
 
-    const username = $('#newUsername').value.trim();
-    const password = $('#newPassword').value.trim();
-    const fullName = $('#newFullName').value.trim();
-    const role = $('#newRole').value;
-    const storeId = $('#newStore').value;
+    var username = $('#newUsername').value.trim();
+    var password = $('#newPassword').value.trim();
+    var fullName = $('#newFullName').value.trim();
+    var role = $('#newRole').value;
+    var storeId = $('#newStore').value;
 
     if (!username || !password || !fullName) return;
 
-    if (users.find(u => u.username === username)) {
-      toast('❌ Username already exists', 'error');
-      return;
-    }
+    var exists = users.find(function(u) { return u.username === username; });
+    if (exists) { toast('❌ Username exists', 'error'); return; }
 
-    users.push({ id: uid(), username, password, fullName, role, storeId });
+    users.push({ id: uid(), username: username, password: password, fullName: fullName, role: role, storeId: storeId });
     saveAll();
     e.target.reset();
-    addLog('ADD_USER', `Added user: ${username} (${role})`);
+    addLog('ADD_USER', 'Added user: ' + username);
     renderAll();
-    toast(`👤 User "${username}" added`);
+    toast('👤 User added');
   });
 }
 
 window.deleteUser = function(id) {
-  if (!canDo('users')) return toast('❌ Only admin', 'error');
-  if (id === currentUser?.id) return toast('❌ Cannot delete yourself', 'error');
-  const u = users.find(x => x.id === id);
-  if (!confirm(`Delete user "${u.username}"?`)) return;
-  users = users.filter(x => x.id !== id);
+  if (!canDo('users')) { toast('❌ Only admin', 'error'); return; }
+  if (currentUser && id === currentUser.id) { toast('❌ Cannot delete yourself', 'error'); return; }
+  var u = users.find(function(x) { return x.id === id; });
+  if (!u) return;
+  if (!confirm('Delete user "' + u.username + '"?')) return;
+  users = users.filter(function(x) { return x.id !== id; });
   saveAll();
-  addLog('DELETE_USER', `Deleted user: ${u.username}`);
+  addLog('DELETE_USER', 'Deleted user: ' + u.username);
   renderAll();
   toast('🗑️ User deleted', 'error');
 };
 
 function renderUsers() {
-  const tbody = $('#usersTable');
+  var tbody = $('#usersTable');
   if (!tbody) return;
 
-  tbody.innerHTML = users.length === 0
-    ? `<tr><td colspan="5"><div class="empty-state"><span class="emoji">👥</span>No users</div></td></tr>`
-    : users.map(u => {
-        const store = u.storeId ? getStore(u.storeId) : null;
-        return `
-          <tr>
-            <td><strong>${u.username}</strong></td>
-            <td>${u.fullName}</td>
-            <td>${u.role}</td>
-            <td>${store ? store.name : '—'}</td>
-            <td>${u.id === currentUser?.id ? '<span style="color:var(--text-dim);font-size:12px;">You</span>' : `<button class="btn danger" onclick="deleteUser('${u.id}')">Delete</button>`}</td>
-          </tr>
-        `;
-      }).join('');
+  if (users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><span class="emoji">👥</span>No users</div></td></tr>';
+  } else {
+    var html = '';
+    users.forEach(function(u) {
+      var store = u.storeId ? getStore(u.storeId) : null;
+      var action = (currentUser && u.id === currentUser.id)
+        ? '<span style="color:var(--text-dim);font-size:12px;">You</span>'
+        : '<button class="btn danger" onclick="deleteUser(\'' + u.id + '\')">Delete</button>';
+      html += '<tr><td><strong>' + u.username + '</strong></td><td>' + u.fullName + '</td>' +
+        '<td>' + u.role + '</td><td>' + (store ? store.name : '—') + '</td><td>' + action + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
 
-  const storeSel = $('#newStore');
+  var storeSel = $('#newStore');
   if (storeSel) {
-    storeSel.innerHTML = '<option value="">— None —</option>' +
-      stores.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    var opts = '<option value="">— None —</option>';
+    stores.forEach(function(s) {
+      opts += '<option value="' + s.id + '">' + s.name + '</option>';
+    });
+    storeSel.innerHTML = opts;
   }
 }
 
 /* ================= ACTIVITY ================= */
 function renderActivity() {
-  const tbody = $('#activityTable');
+  var tbody = $('#activityTable');
   if (!tbody) return;
-
-  tbody.innerHTML = logs.length === 0
-    ? `<tr><td colspan="4"><div class="empty-state"><span class="emoji">📜</span>No activity</div></td></tr>`
-    : logs.slice(0, 100).map(l => `
-      <tr>
-        <td style="font-size:12px;">${l.time}</td>
-        <td><strong>${l.userName}</strong></td>
-        <td>${l.action}</td>
-        <td style="font-size:13px;">${l.details}</td>
-      </tr>
-    `).join('');
+  if (logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><span class="emoji">📜</span>No activity</div></td></tr>';
+    return;
+  }
+  var html = '';
+  logs.slice(0, 100).forEach(function(l) {
+    html += '<tr><td style="font-size:12px;">' + l.time + '</td><td><strong>' + l.userName + '</strong></td>' +
+      '<td>' + l.action + '</td><td style="font-size:13px;">' + l.details + '</td></tr>';
+  });
+  tbody.innerHTML = html;
 }
 
 function setupActivity() {
-  const btn = $('#clearLogBtn');
-  if (btn) btn.addEventListener('click', () => {
+  var btn = $('#clearLogBtn');
+  if (btn) btn.addEventListener('click', function() {
     if (!confirm('Clear all activity log?')) return;
     logs = [];
     saveAll();
@@ -781,20 +828,21 @@ function setupActivity() {
 
 /* ================= DASHBOARD ================= */
 function renderDashboard() {
-  const sp = $('#statProducts'); if (sp) sp.textContent = products.length;
-  const ss = $('#statStores'); if (ss) ss.textContent = stores.length;
+  var sp = $('#statProducts'); if (sp) sp.textContent = products.length;
+  var ss = $('#statStores'); if (ss) ss.textContent = stores.length;
 
-  const mainItems = Object.values(mainStore).filter(q => q > 0).length;
-  const smi = $('#statMainItems'); if (smi) smi.textContent = mainItems;
+  var mainItems = Object.values(mainStore).filter(function(q) { return q > 0; }).length;
+  var smi = $('#statMainItems'); if (smi) smi.textContent = mainItems;
 
-  let value = 0;
-  Object.entries(mainStore).forEach(([pid, qty]) => {
-    const p = getProduct(pid);
-    if (p) value += qty * p.price;
+  var value = 0;
+  Object.entries(mainStore).forEach(function(e) {
+    var p = getProduct(e[0]);
+    if (p) value += e[1] * p.price;
   });
-  const smv = $('#statMainValue'); if (smv) smv.textContent = fmtRs(value);
+  var smv = $('#statMainValue'); if (smv) smv.textContent = fmtRs(value);
 
-  const td = $('#todayDate'); if (td) td.textContent = new Date().toLocaleDateString('en-GB', {
+  var td = $('#todayDate');
+  if (td) td.textContent = new Date().toLocaleDateString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
   });
 
@@ -805,60 +853,25 @@ function renderDashboard() {
 }
 
 function renderChart() {
-  const container = $('#chartBars');
+  var container = $('#chartBars');
   if (!container) return;
-  const data = [];
+  var data = [];
 
-  let mainTotal = 0;
-  Object.entries(mainStore).forEach(([pid, qty]) => {
-    const p = getProduct(pid);
-    if (p) mainTotal += qty * p.price;
+  var mainTotal = 0;
+  Object.entries(mainStore).forEach(function(e) {
+    var p = getProduct(e[0]);
+    if (p) mainTotal += e[1] * p.price;
   });
   data.push({ name: '🏬 Main Store', value: mainTotal });
 
-  stores.forEach(s => {
-    let total = 0;
-    Object.entries(s.items).forEach(([pid, qty]) => {
-      const p = getProduct(pid);
-      if (p) total += qty * p.price;
+  stores.forEach(function(s) {
+    var total = 0;
+    Object.entries(s.items).forEach(function(e) {
+      var p = getProduct(e[0]);
+      if (p) total += e[1] * p.price;
     });
     data.push({ name: '🏪 ' + s.name, value: total });
   });
 
-  const max = Math.max(...data.map(d => d.value), 1);
-
-  if (data.every(d => d.value === 0)) {
-    container.innerHTML = `<div class="empty-state"><span class="emoji">📊</span>No stock data yet</div>`;
-    return;
-  }
-
-  container.innerHTML = data.map(d => `
-    <div class="chart-row">
-      <div class="label"><span>${d.name}</span><strong>${fmtRs(d.value)}</strong></div>
-      <div class="bar-track"><div class="bar-fill" style="width: ${(d.value / max * 100).toFixed(1)}%"></div></div>
-    </div>
-  `).join('');
-}
-
-function renderLowStock() {
-  const alerts = getLowStockAlerts();
-  const el = $('#lowStockList');
-  if (!el) return;
-  if (!alerts.length) {
-    el.innerHTML = `<div class="empty-state"><span class="emoji">✨</span>All good! No low stock.</div>`;
-    return;
-  }
-  el.innerHTML = alerts.map(a => `
-    <div class="alert-item ${a.level}">
-      <span class="icon">${a.level === 'danger' ? '🚨' : '⚠️'}</span>
-      <div class="info"><strong>${a.name}</strong><span>${a.msg}</span></div>
-    </div>
-  `).join('');
-}
-
-function renderRecentActivity() {
-  const el = $('#recentActivity');
-  if (!el) return;
-  const recent = transfers.slice(0, 6);
-  if (!recent.length) {
-    el.innerHTML = `<div class="empty-state"><span class="emoji">🕒</span>No activity yet</div>`;
+  var max = 1;
+  data.forEach(function(d) { if (
