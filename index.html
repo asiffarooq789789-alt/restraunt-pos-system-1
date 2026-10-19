@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RestaurantOS — Multi-User Stock Manager</title>
+  <title>RestaurantOS — Stock Manager</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- BACKGROUND BLOBS -->
   <div class="bg-blobs">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
   </div>
 
-  <!-- ============ LOGIN SCREEN ============ -->
+  <!-- LOGIN SCREEN -->
   <div class="login-screen" id="loginScreen">
     <div class="login-card glass">
       <div class="login-logo">🍽️</div>
@@ -46,10 +45,9 @@
     </div>
   </div>
 
-  <!-- ============ APP (Hidden until login) ============ -->
+  <!-- APP -->
   <div id="appRoot" style="display:none;">
 
-    <!-- TOPBAR -->
     <header class="topbar">
       <button class="icon-btn" id="menuToggle" title="Menu">☰</button>
       <div class="brand">
@@ -76,7 +74,6 @@
       </div>
     </header>
 
-    <!-- NOTIFICATION PANEL -->
     <div class="notif-panel" id="notifPanel">
       <div class="notif-header">
         <h3>🔔 Notifications</h3>
@@ -85,14 +82,13 @@
       <div class="notif-list" id="notifList"></div>
     </div>
 
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <span class="brand-icon">🍽️</span>
         <span class="brand-name">RestaurantOS</span>
         <button class="icon-btn small" id="closeSidebar">✕</button>
       </div>
-      <nav class="sidebar-nav" id="sidebarNav">
+      <nav class="sidebar-nav">
         <button class="nav-btn active" data-page="dashboard" data-roles="admin,manager,staff"><span>📊</span> Dashboard</button>
         <button class="nav-btn" data-page="mainstore" data-roles="admin,manager"><span>🏬</span> Main Store</button>
         <button class="nav-btn" data-page="substores" data-roles="admin,manager,staff"><span>🏪</span> Sub Stores</button>
@@ -110,7 +106,6 @@
     </aside>
     <div class="overlay" id="overlay"></div>
 
-    <!-- MAIN -->
     <main class="main" id="main">
 
       <!-- DASHBOARD -->
@@ -159,7 +154,7 @@
             <div class="activity-list" id="recentActivity"></div>
           </div>
           <div class="glass card">
-            <div class="card-header"><h3>🏆 Top Products by Value</h3></div>
+            <div class="card-header"><h3>🏆 Top Products</h3></div>
             <div class="activity-list" id="topProducts"></div>
           </div>
         </div>
@@ -175,7 +170,7 @@
           <form id="purchaseForm" class="form-grid">
             <div class="field"><label>Product</label><select id="purchaseProduct" required></select></div>
             <div class="field"><label>Quantity</label><input type="number" id="purchaseQty" placeholder="0" min="1" required /></div>
-            <div class="field"><label>Price per unit</label><input type="number" id="purchasePrice" placeholder="Auto from product" min="0" step="0.01" /></div>
+            <div class="field"><label>Price per unit</label><input type="number" id="purchasePrice" placeholder="Auto" min="0" step="0.01" /></div>
             <button type="submit" class="btn primary">Add Purchase</button>
           </form>
         </div>
@@ -196,12 +191,12 @@
       <!-- SUB STORES -->
       <section id="substores" class="page">
         <div class="page-header">
-          <div><h1>🏪 Sub Stores</h1><p class="subtitle">Branches — Kitchen, Bar, etc.</p></div>
+          <div><h1>🏪 Sub Stores</h1><p class="subtitle">Branches</p></div>
         </div>
-        <div class="glass card" id="addStoreCard">
+        <div class="glass card">
           <div class="card-header"><h3>➕ Add Sub Store</h3></div>
           <form id="storeForm" class="form-grid">
-            <div class="field full"><label>Store Name</label><input type="text" id="storeName" placeholder="e.g. Kitchen, Bar, Store 2" required /></div>
+            <div class="field full"><label>Store Name</label><input type="text" id="storeName" placeholder="e.g. Kitchen, Bar" required /></div>
             <button type="submit" class="btn primary">Add Store</button>
           </form>
         </div>
@@ -214,7 +209,7 @@
       <!-- TRANSFER -->
       <section id="transfer" class="page">
         <div class="page-header">
-          <div><h1>🔄 Transfer Stock</h1><p class="subtitle">Move stock from Main Store to branches</p></div>
+          <div><h1>🔄 Transfer Stock</h1><p class="subtitle">Main Store → Branches</p></div>
         </div>
         <div class="glass card">
           <div class="card-header"><h3>➡️ New Transfer</h3></div>
@@ -237,37 +232,27 @@
         </div>
       </section>
 
-      <!-- BRANCH STOCK (Per-Branch Update System) -->
+      <!-- BRANCH STOCK -->
       <section id="branchstock" class="page">
         <div class="page-header">
-          <div><h1>📦 Branch Stock Update</h1><p class="subtitle">Update stock at branch level (usage, wastage, new arrival)</p></div>
+          <div><h1>📦 Branch Stock</h1><p class="subtitle">Update stock at branch level</p></div>
         </div>
-
-        <!-- BRANCH SELECTOR (for admin/manager) -->
-        <div class="glass card" id="branchSelectorCard">
+        <div class="glass card">
           <div class="card-header"><h3>🏪 Select Branch</h3></div>
-          <div class="field full">
-            <select id="branchSelect"></select>
-          </div>
+          <div class="field full"><select id="branchSelect"></select></div>
         </div>
-
-        <!-- CURRENT STOCK -->
         <div class="glass card">
           <div class="card-header">
-            <h3>📋 Current Branch Stock</h3>
+            <h3>📋 Current Stock</h3>
             <span class="store-total" id="branchTotal">Rs 0</span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead>
-                <tr><th>Product</th><th>Qty</th><th>Price</th><th>Value</th><th>Actions</th></tr>
-              </thead>
+              <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Value</th><th>Actions</th></tr></thead>
               <tbody id="branchStockTable"></tbody>
             </table>
           </div>
         </div>
-
-        <!-- STOCK UPDATE FORM -->
         <div class="glass card">
           <div class="card-header"><h3>✏️ Update Stock</h3></div>
           <form id="stockUpdateForm" class="form-grid">
@@ -275,14 +260,14 @@
             <div class="field">
               <label>Action</label>
               <select id="updateAction" required>
-                <option value="add">➕ Add (New Arrival)</option>
-                <option value="remove">➖ Remove (Usage / Wastage)</option>
-                <option value="set">🔧 Set (Manual Override)</option>
+                <option value="add">➕ Add</option>
+                <option value="remove">➖ Remove</option>
+                <option value="set">🔧 Set</option>
               </select>
             </div>
             <div class="field"><label>Quantity</label><input type="number" id="updateQty" placeholder="0" min="1" required /></div>
-            <div class="field"><label>Note (optional)</label><input type="text" id="updateNote" placeholder="e.g. Daily usage" /></div>
-            <button type="submit" class="btn primary">Apply Update</button>
+            <div class="field"><label>Note</label><input type="text" id="updateNote" placeholder="e.g. Daily usage" /></div>
+            <button type="submit" class="btn primary">Apply</button>
           </form>
           <p id="updateMsg" class="msg"></p>
         </div>
@@ -291,14 +276,14 @@
       <!-- PRODUCTS -->
       <section id="products" class="page">
         <div class="page-header">
-          <div><h1>📋 Products</h1><p class="subtitle">Admin only — product names, prices, units</p></div>
+          <div><h1>📋 Products</h1><p class="subtitle">Admin only</p></div>
         </div>
         <div class="glass card">
           <div class="card-header"><h3>➕ Add Product</h3></div>
           <form id="productForm" class="form-grid">
-            <div class="field"><label>Product Name</label><input type="text" id="productName" placeholder="e.g. Chicken" required /></div>
-            <div class="field"><label>Price per unit</label><input type="number" id="productPrice" placeholder="0.00" min="0" step="0.01" required /></div>
-            <div class="field"><label>Unit</label><input type="text" id="productUnit" placeholder="kg / pcs / litre" required /></div>
+            <div class="field"><label>Name</label><input type="text" id="productName" placeholder="Chicken" required /></div>
+            <div class="field"><label>Price</label><input type="number" id="productPrice" placeholder="0.00" min="0" step="0.01" required /></div>
+            <div class="field"><label>Unit</label><input type="text" id="productUnit" placeholder="kg" required /></div>
             <button type="submit" class="btn primary">Add Product</button>
           </form>
         </div>
@@ -319,7 +304,7 @@
       <!-- ACCOUNTS -->
       <section id="accounts" class="page">
         <div class="page-header">
-          <div><h1>💰 Store Accounts</h1><p class="subtitle">Each branch's stock ledger</p></div>
+          <div><h1>💰 Store Accounts</h1><p class="subtitle">Branch ledgers</p></div>
         </div>
         <div class="glass card">
           <div class="card-header">
@@ -328,17 +313,17 @@
           </div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th>Store</th><th>Product</th><th>Qty</th><th>Price/Unit</th><th>Total</th></tr></thead>
+              <thead><tr><th>Store</th><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
               <tbody id="accountsTable"></tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- USERS (Admin only) -->
+      <!-- USERS -->
       <section id="users" class="page">
         <div class="page-header">
-          <div><h1>👥 Users</h1><p class="subtitle">Manage system users & roles</p></div>
+          <div><h1>👥 Users</h1><p class="subtitle">Manage users & roles</p></div>
         </div>
         <div class="glass card">
           <div class="card-header"><h3>➕ Add User</h3></div>
@@ -349,15 +334,12 @@
             <div class="field">
               <label>Role</label>
               <select id="newRole" required>
-                <option value="staff">Staff (view + stock update)</option>
-                <option value="manager">Manager (purchase + transfer)</option>
-                <option value="admin">Admin (full access)</option>
+                <option value="staff">Staff</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
-            <div class="field">
-              <label>Assigned Store (for staff/manager)</label>
-              <select id="newStore"><option value="">— None —</option></select>
-            </div>
+            <div class="field"><label>Assigned Store</label><select id="newStore"><option value="">— None —</option></select></div>
             <button type="submit" class="btn primary">Add User</button>
           </form>
         </div>
@@ -372,15 +354,15 @@
         </div>
       </section>
 
-      <!-- ACTIVITY LOG -->
+      <!-- ACTIVITY -->
       <section id="activity" class="page">
         <div class="page-header">
-          <div><h1>📜 Activity Log</h1><p class="subtitle">All actions performed in the system</p></div>
+          <div><h1>📜 Activity Log</h1><p class="subtitle">All actions</p></div>
         </div>
         <div class="glass card">
           <div class="card-header">
             <h3>📋 Log</h3>
-            <button class="btn ghost" id="clearLogBtn">🗑️ Clear Log</button>
+            <button class="btn ghost" id="clearLogBtn">🗑️ Clear</button>
           </div>
           <div class="table-wrap">
             <table class="data-table">
